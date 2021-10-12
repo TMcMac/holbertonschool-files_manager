@@ -1,4 +1,4 @@
-import dbClient from '../utils/dbClient';
+import dbClient from '../utils/db';
 
 class UsersController {
   static async postNew(req, res) {
