@@ -12,12 +12,12 @@ class AuthController {
     const slice = rawCredentials.slice(6);
     const stringCredentials = Buffer.from(slice, 'base64').toString();
     const [email, pwd] = stringCredentials.split(':');
-      
+
     if (!email || !pwd) return response.status(401).json({ error: 'Unauthorized' });
 
     const credentials = { email, password: sha1(pwd) };
     const user = await dbClient.db.collection('users').findOne(credentials);
-    
+
     if (!user) { return response.status(401).json({ error: 'Unauthorized' }); }
 
     const token = uuidv4();
