@@ -31,7 +31,6 @@ class UsersController {
     }
 
     return response.json({ id, email: user.email });
-    }
   }
 }
 
