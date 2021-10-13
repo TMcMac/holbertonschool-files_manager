@@ -2,6 +2,9 @@ import crypto from 'crypto';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
+const mongo = require('mongodb');
+
+
 class UsersController {
   static async postNew(req, res) {
     const { email, password } = req.body;
@@ -20,7 +23,6 @@ class UsersController {
   }
 
   static async getMe(request, response) {
-    const mongo = require('mongodb');
     const token = request.headers['x-token'];
     const id = await redisClient.get(`auth_${token}`);
     const objectId = new mongo.ObjectID(id);
