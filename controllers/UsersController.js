@@ -4,7 +4,6 @@ import redisClient from '../utils/redis';
 
 const mongo = require('mongodb');
 
-
 class UsersController {
   static async postNew(req, res) {
     const { email, password } = req.body;
