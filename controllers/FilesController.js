@@ -62,6 +62,7 @@ class FilesController {
     });
   }
 }
+
 static async getShow(req, res) {
   const token = req.headers['x-token'];
   const key = `auth_${token}`;
