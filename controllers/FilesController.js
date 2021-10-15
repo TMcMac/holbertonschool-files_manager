@@ -4,11 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
+async function getAuth(req) {
+  const token = req.headers['x-token'];
+  const key = `auth_${token}`;
+  const userId = await redisClient.get(key);
+  return userId || null;
+}
+
 class FilesController {
   static async postUpload(req, res) {
-    const token = req.headers['x-token'];
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
+    const userId = await getAuth(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     const { name, type, data } = req.body;
     let { parentId, isPublic } = req.body;
@@ -63,17 +68,46 @@ class FilesController {
   }
 
   static async getShow(req, res) {
-    const token = req.headers['x-token'];
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
-
+    const userId = await getAuth(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     const { id } = req.params;
     const objId = ObjectID(id);
     const file = await dbClient.db.collection('files').find({ _id: objId }).toArray();
 
-    if (!file && userId !== file.userId.toString()) return res.status(404).json({ error: 'Not found' });
-    return file;
+    if (file.type === 'folder' && userId.toString() !== file.userId.toString()) return res.status(404).json({ error: 'Not found' });
+    return res.json({
+      id: file[0]._id,
+      userId,
+      name: file[0].name,
+      type: file[0].type,
+      isPublic: file[0].isPublic,
+      parentId: file[0].parentId,
+    });
+  }
+
+  static async getIndex(req, res) {
+    const userId = await getAuth(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const parentId = req.query.parentId || 0;
+    const page = req.query.page || 0;
+    const aggMatch = { $and: [{ parentId }] };
+    let aggData = [{ $match: aggMatch }, { $skip: page * 20 }, { $limit: 20 }];
+    if (parentId === 0) aggData = [{ $skip: page * 20 }, { $limit: 20 }];
+
+    const files = await dbClient.db.collection('files').aggregate(aggData);
+    const filesArr = [];
+    await files.forEach((file) => {
+      const fileObj = {
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      };
+      filesArr.push(fileObj);
+    });
+    return res.send(filesArr);
   }
 }
 
